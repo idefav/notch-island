@@ -24,7 +24,7 @@ NotchIsland 是一个独立的 macOS 菜单栏工具。菜单栏太挤时，被�
 可选的文件校验方式。在同一目录下载 DMG 和对应的 `.sha256` 后运行下列命令，将版本号换成所下载的版本。
 
 ```sh
-shasum -a 256 -c NotchIsland-0.2.0-arm64.dmg.sha256
+shasum -a 256 -c NotchIsland-0.2.1-arm64.dmg.sha256
 ```
 
 ## 权限和兼容性

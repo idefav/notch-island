@@ -61,7 +61,7 @@ attached=true
 
 mounted_app="$mount/NotchIsland.app"
 codesign --verify --strict "$mounted_app"
-xcrun lipo -verify_arch arm64 "$mounted_app/Contents/MacOS/NotchIsland"
+test "$(xcrun lipo -archs "$mounted_app/Contents/MacOS/NotchIsland")" = "$architecture"
 test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$mounted_app/Contents/Info.plist")" = "$version"
 test -s "$mounted_app/Contents/Resources/AppIcon.icns"
 test "$(readlink "$mount/Applications")" = /Applications
