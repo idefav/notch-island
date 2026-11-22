@@ -14,11 +14,46 @@ enum IslandTrigger: String, CaseIterable {
     }
 
     static func load(from defaults: UserDefaults) -> Self {
-        defaults.string(forKey: preferenceKey).flatMap(Self.init(rawValue:)) ?? .click
+        defaults.string(forKey: preferenceKey).flatMap(Self.init(rawValue:)) ?? .hover
     }
 
     func save(to defaults: UserDefaults) {
         defaults.set(rawValue, forKey: Self.preferenceKey)
+    }
+}
+
+enum IslandLayoutMode: String, CaseIterable {
+    case wrap
+    case scroll
+
+    private static let preferenceKey = "islandLayoutMode"
+
+    var title: String {
+        switch self {
+        case .wrap: "换行展示"
+        case .scroll: "横向滚动"
+        }
+    }
+
+    static func load(from defaults: UserDefaults) -> Self {
+        defaults.string(forKey: preferenceKey).flatMap(Self.init(rawValue:)) ?? .wrap
+    }
+
+    func save(to defaults: UserDefaults) {
+        defaults.set(rawValue, forKey: Self.preferenceKey)
+    }
+}
+
+enum IslandPreferences {
+    private static let hideInFullScreenKey = "islandHideInFullScreen"
+
+    static func hideInFullScreen(from defaults: UserDefaults) -> Bool {
+        if defaults.object(forKey: hideInFullScreenKey) == nil { return true }
+        return defaults.bool(forKey: hideInFullScreenKey)
+    }
+
+    static func setHideInFullScreen(_ value: Bool, to defaults: UserDefaults) {
+        defaults.set(value, forKey: hideInFullScreenKey)
     }
 }
 
@@ -37,8 +72,8 @@ struct IslandInteraction {
 
         var delay: Duration {
             switch self {
-            case .open: .milliseconds(250)
-            case .close: .milliseconds(350)
+            case .open: .milliseconds(200)
+            case .close: .milliseconds(320)
             }
         }
     }

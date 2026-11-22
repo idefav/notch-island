@@ -6,12 +6,19 @@
     <key>CFBundleExecutable</key><string>NotchIsland</string>
     <key>CFBundleName</key><string>NotchIsland</string>
     <key>CFBundleDisplayName</key><string>菜单栏灵动岛</string>
+    <key>CFBundleDevelopmentRegion</key><string>zh_CN</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>zh_CN</string>
+    </array>
     <key>CFBundleIconFile</key><string>AppIcon.icns</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleVersion</key><string>3</string>
-    <key>CFBundleShortVersionString</key><string>0.2.1</string>
+    <key>CFBundleVersion</key><string>4</string>
+    <key>CFBundleShortVersionString</key><string>0.2.2</string>
+    <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
     <key>LSMinimumSystemVersion</key><string>26.0</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
+    <key>NSScreenCaptureUsageDescription</key><string>菜单栏灵动岛需要屏幕录制权限以读取被刘海遮挡的状态栏图标图像。</string>
 </dict>
 </plist>

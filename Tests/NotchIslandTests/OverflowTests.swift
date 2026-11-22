@@ -35,4 +35,21 @@ struct OverflowTests {
         #expect(StatusSnapshot.onMenuBar(CGRect(x: -198, y: -180, width: 42, height: 30), external))
         #expect(!StatusSnapshot.onMenuBar(CGRect(x: -198, y: 0, width: 42, height: 30), external))
     }
+
+    @Test func overlappingWideOffSpaceWindowDoesNotSwallowRealItems() {
+        let firstVisible = item(20, x: 1000, width: 50, visible: true)
+        let staleWide = item(99, x: 840, width: 160) // same maxX = 1000, stale wide overlay from another Space
+        let realLeft = item(11, x: 920, width: 40)
+        let realRight = item(12, x: 960, width: 40)
+        let result = StatusSnapshot.overflow(in: [staleWide, realLeft, realRight, firstVisible], notch: notch)
+        #expect(result.map(\.id) == [11, 12])
+    }
+
+    @Test func narrowSpacerGapDoesNotBreakOverflowChain() {
+        let firstVisible = item(20, x: 1000, width: 50, visible: true)
+        let leftItem = item(11, x: 900, width: 44)  // ends at 944, 16pt gap before rightItem (e.g. narrow divider)
+        let rightItem = item(12, x: 960, width: 40) // 960..1000
+        let result = StatusSnapshot.overflow(in: [leftItem, rightItem, firstVisible], notch: notch)
+        #expect(result.map(\.id) == [11, 12])
+    }
 }

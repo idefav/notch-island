@@ -1,10 +1,19 @@
 import AppKit
 import CoreGraphics
 
-struct NotchedDisplay {
-    let screen: NSScreen
+struct DisplayGeometry: Sendable, Equatable {
+    let displayID: CGDirectDisplayID
     let bounds: CGRect
     let notch: CGRect
+}
+
+struct NotchedDisplay {
+    let screen: NSScreen
+    let geometry: DisplayGeometry
+
+    var displayID: CGDirectDisplayID { geometry.displayID }
+    var bounds: CGRect { geometry.bounds }
+    var notch: CGRect { geometry.notch }
 
     init?(screen: NSScreen) {
         guard let left = screen.auxiliaryTopLeftArea,
@@ -12,9 +21,11 @@ struct NotchedDisplay {
               let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
               screen.safeAreaInsets.top > 0, right.minX > left.maxX else { return nil }
         self.screen = screen
-        bounds = CGDisplayBounds(number.uint32Value)
-        notch = CGRect(x: bounds.minX + left.maxX - screen.frame.minX,
-                       y: bounds.minY, width: right.minX - left.maxX, height: screen.safeAreaInsets.top)
+        let displayID = number.uint32Value
+        let bounds = CGDisplayBounds(displayID)
+        let notch = CGRect(x: bounds.minX + left.maxX - screen.frame.minX,
+                           y: bounds.minY, width: right.minX - left.maxX, height: screen.safeAreaInsets.top)
+        geometry = DisplayGeometry(displayID: displayID, bounds: bounds, notch: notch)
     }
 }
 
@@ -30,16 +41,21 @@ struct StatusWindow: Identifiable, Sendable, Equatable {
     }
 }
 
-struct StatusSnapshot {
+struct StatusSnapshot: Sendable {
     let windows: [StatusWindow]
     let overflow: [StatusWindow]
     let menuBarVisible: Bool
 
     init(display: NotchedDisplay, otherDisplays: [CGRect]) {
+        self.init(display: display.geometry, otherDisplays: otherDisplays)
+    }
+
+    init(display: DisplayGeometry, otherDisplays: [CGRect]) {
         let menuLevel = Int(CGWindowLevelForKey(.mainMenuWindow))
         let statusLevel = Int(CGWindowLevelForKey(.statusWindow))
         let entries = CGWindowListCopyWindowInfo(.excludeDesktopElements, kCGNullWindowID) as? [[String: Any]] ?? []
         let displays = [display.bounds] + otherDisplays
+        let currentPID = ProcessInfo.processInfo.processIdentifier
         var localMenuBarVisible = false
         var statusWindows = [StatusWindow]()
         for entry in entries {
@@ -60,7 +76,7 @@ struct StatusSnapshot {
                   (entry[kCGWindowAlpha as String] as? Double ?? 1) > 0,
                   let number = entry[kCGWindowNumber as String] as? NSNumber,
                   let owner = entry[kCGWindowOwnerPID as String] as? NSNumber,
-                  owner.int32Value != ProcessInfo.processInfo.processIdentifier else { continue }
+                  owner.int32Value != currentPID else { continue }
             statusWindows.append(StatusWindow(id: number.uint32Value, owner: owner.int32Value,
                                                title: entry[kCGWindowName as String] as? String ?? "",
                                                frame: frame, visible: visible))
@@ -80,13 +96,24 @@ struct StatusSnapshot {
         guard let firstVisible = windows.lazy.filter({ $0.visible && $0.frame.minX >= notch.maxX - 2 })
             .map(\.frame.minX).min() else { return [] }
         let candidates = windows.filter { !$0.visible && $0.frame.maxX <= firstVisible + 2 }
-            .sorted { $0.frame.maxX > $1.frame.maxX }
+            .sorted { lhs, rhs in
+                if abs(lhs.frame.maxX - rhs.frame.maxX) > 1 {
+                    return lhs.frame.maxX > rhs.frame.maxX
+                }
+                if abs(lhs.frame.width - rhs.frame.width) > 1 {
+                    return lhs.frame.width < rhs.frame.width
+                }
+                return lhs.id < rhs.id
+            }
         var boundary = firstVisible
         var hidden = [StatusWindow]()
+        let maxGap: CGFloat = 18
         for window in candidates {
             // Other Spaces and parked items can leave windows behind. The
-            // overflow chain should still touch the first visible status item.
-            if window.frame.maxX < boundary - 12 { break }
+            // overflow chain should stay contiguous with the first visible status item,
+            // while tolerating narrow spacers/dividers and skipping overlapping stale windows.
+            if window.frame.maxX < boundary - maxGap { break }
+            guard window.frame.maxX <= boundary + 4 else { continue }
             guard window.frame.minX < boundary - 2 else { continue }
             hidden.append(window)
             boundary = window.frame.minX
